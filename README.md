@@ -148,7 +148,7 @@ It is definitely open for improvements. Screenshot:
 
 ## Ansible role
 
-In ansible-role you can find Ansible role for installing barman-exporter. Copy it to `roles/monitoring/barman-exporter` and add to you playbooks:
+In `ansible-barman-exporter` directory you can find Ansible role for installing barman-exporter. Copy it to `roles/monitoring/barman-exporter` and add to you playbooks:
 
 ```
 # prometheus.yml
