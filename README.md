@@ -70,7 +70,7 @@ Metric `barman_backups_total` includes failed backups. Also number of failed bac
 
 Metric `barman_up` show output of `barman check SERVER_NAME` command. Output `OK` is `1.0`, `FAILED` is `0.0`.
 
-Using timestamps from metrics `barman_last_backup` and `barman_first_backup` you can easily calculate how long ago the backups has been done, e.g.
+Using timestamps from metrics `barman_last_backup` and `barman_first_backup` you can easily calculate how long ago a backup was completed:
 
 ```time() - barman_last_backup{instance="$instance", server="$server"}```
 
