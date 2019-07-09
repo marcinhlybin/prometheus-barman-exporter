@@ -1,0 +1,17 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Barman Exporter
+After=network-online.target
+
+[Service]
+Type=simple
+User=barman
+Group=barman
+ExecStart=/usr/local/bin/barman_exporter \
+  --web-listen-address="{{ barman_exporter_web_listen_address }}"
+
+SyslogIdentifier=barman_exporter
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

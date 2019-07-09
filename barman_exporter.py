@@ -1,0 +1,1 @@
+ansible-barman-exporter/files/barman_exporter.py
