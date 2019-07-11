@@ -1,6 +1,0 @@
-- name: restart barman-exporter
-  systemd:
-    name: barman-exporter
-    daemon_reload: "{{ __barman_exporter_systemd is changed }}"
-    state: restarted
-  ignore_errors: true

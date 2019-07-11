@@ -1,5 +1,16 @@
 # Barman exporter for Prometheus
 
+Two exporters are available:
+
+* `barman_exporter_cli.py` which uses `barman` command and parses console output
+* `barman_exporter.py` which uses barman with Python which is awfully inconvenient but more reliable, I guess
+
+## Grafana dashboard
+
+You can find basic grafana dashboard in `grafana-dashboard.json`. It is open for improvements.
+
+![Grafana screenshot](grafana-screenshot.png?raw=true "Grafana screenshot")
+
 ## Usage
 
 ```
@@ -20,10 +31,10 @@ optional arguments:
 
 For example:
 
-* `barman_exporter postgres-01`
-* `barman_exporter postgres-01 postgres-02`
-* `barman_exporter all`
-* `barman_exporter -l 10.10.10.5:9780 all`
+* `$ barman_exporter postgres-01`
+* `$ barman_exporter postgres-01 postgres-02`
+* `$ barman_exporter all`
+* `$ barman_exporter -l 10.10.10.5:9780 all`
 
 Try if it works by running:
 
@@ -44,9 +55,16 @@ You need Python3 to run it and following modules:
 $ pip3 install prometheus_client sh
 ```
 
+## Installation
+
+Copy `barman_exporter.py` file to /usr/local/bin/barman_exporter.
+
+Or use ansible which installs all requirements and includes systemd service file: https://github.com/ahes/ansible-barman-exporter
+
+
 ## Prometheus configuration
 
-Please note that backup listing is I/O heavy process and can take a while. Definitely do not run this exporter every 5s or even 15s. 15 minutes or more is reasonable with at least 120s timeout depending on how many backups and servers you have.
+Please note that backup listing is I/O heavy process and can take a while. *Definitely do not run barman exporter every 5s or even 15s*. 15 minutes or more is reasonable with at least 120s timeout depending on how many backups and servers you have.
 
 Sample Prometheus configuration:
 
@@ -61,16 +79,15 @@ Sample Prometheus configuration:
 
 ## Metrics
 
-Label `number=1` is the newest backup.
+The `number=1` label determines the newest backup.
 
-Metrics `barman_bacukps_size` and `barman_backups_wal_size` shows only successful backups. Failed backups will not be listed there.
+The metrics names `barman_bacukps_size` and `barman_backups_wal_size` show only successful backups. Failed backups will not be listed here.
 
-Metric `barman_backups_total` includes failed backups. Also number of failed backups is exposed in `barman_backups_failed`.
+The metric `barman_backups_total` includes failed backups. A number of failed backups is exposed in `barman_backups_failed`.
 
+The metric `barman_up` show output of `barman check SERVER_NAME` command. Output `OK` is `1.0`, `FAILED` is `0.0`.
 
-Metric `barman_up` show output of `barman check SERVER_NAME` command. Output `OK` is `1.0`, `FAILED` is `0.0`.
-
-Using timestamps from metrics `barman_last_backup` and `barman_first_backup` you can easily calculate how long ago a backup was completed:
+Using timestamps from the metrics `barman_last_backup` and `barman_first_backup` you can easily calculate how long ago a backup was completed:
 
 ```time() - barman_last_backup{instance="$instance", server="$server"}```
 
@@ -137,31 +154,3 @@ barman_up{check="pg_receivexlog_compatible",server="postgres-01"} 1.0
 barman_up{check="receive_wal_running",server="postgres-01"} 1.0
 barman_up{check="archiver_errors",server="postgres-01"} 1.0
 ```
-
-## Grafana dashboard
-
-You can find a basic Grafana dashboard in `grafana-dashboard.json`.
-
-It is definitely open for improvements. Screenshot:
-
-![Grafana screenshot](grafana-screenshot.png?raw=true "Grafana screenshot")
-
-## Ansible role
-
-In ansible-role you can find Ansible role for installing barman-exporter. Copy it to `roles/monitoring/barman-exporter` and add to you playbooks:
-
-```
-# prometheus.yml
-- hosts: barman-01
-  roles:
-    - name: monitoring/barman-exporter
-      tags: barman-exporter
-```
-
-Run with:
-
-```
-ansible-playbook playbook/prometheus.yml -t barman-exporter
-```
-
-It will install Barman Exporter to `/usr/local/bin/barman_exporter` and add `barman-exporter` service file to systemd.

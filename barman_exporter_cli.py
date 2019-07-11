@@ -70,7 +70,6 @@ class BarmanCollector:
     def __init__(self, servers):
         self.servers = servers
 
-
     @staticmethod
     def pretty_size_to_bytes(size, suffixes = "KMGTPEZY"):
         size, suffix = size.split()
@@ -113,11 +112,13 @@ class BarmanCollector:
         for server_name in self.servers:
             server_status = barman.server_status(server_name)
 
-            first_backup = datetime.strptime(server_status['first_available_backup'], "%Y%m%dT%H%M%S")
-            collectors['barman_first_backup'].add_metric([server_name], first_backup.strftime("%s"))
+            if server_status['first_available_backup']:
+                first_backup = datetime.strptime(server_status['first_available_backup'], "%Y%m%dT%H%M%S")
+                collectors['barman_first_backup'].add_metric([server_name], first_backup.strftime("%s"))
 
-            last_backup = datetime.strptime(server_status['last_available_backup'], "%Y%m%dT%H%M%S")
-            collectors['barman_last_backup'].add_metric([server_name], last_backup.strftime("%s"))
+            if server_status['last_available_backup']:
+                last_backup = datetime.strptime(server_status['last_available_backup'], "%Y%m%dT%H%M%S")
+                collectors['barman_last_backup'].add_metric([server_name], last_backup.strftime("%s"))
 
             backups_done, backups_failed = barman.list_backup(server_name)
             collectors['barman_backups_total'].add_metric([server_name], len(backups_done) + len(backups_failed))
