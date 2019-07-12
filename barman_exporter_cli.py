@@ -38,14 +38,14 @@ class Barman:
             backup = {}
             backup['server'] = server_name
             try:
-                server_name_and_ts, date, size, wal_size = backup_line.split("-")
+                server_name_and_ts, date, size, wal_size = backup_line.rsplit("-",3)
                 backup['date'] = date.strip()
                 backup['size'] = size.split(":")[1].strip()
                 backup['wal_size'] = wal_size.split(":")[1].strip()
                 backup['status'] = "done"
                 backups_done.append(backup)
             except ValueError:
-                server_name_and_ts, status = backup_line.split("-")
+                server_name_and_ts, status = backup_line.rsplit("-",1)
                 backup['status'] = status.lower()
                 backups_failed.append(backup)
 
