@@ -1,4 +1,4 @@
-# which uses `barman` command and parses console outputBarman exporter for Prometheus
+# Barman exporter for Prometheus
 
 Two exporters are available:
 
