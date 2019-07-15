@@ -137,7 +137,7 @@ class BarmanCollector(object):
                     [server_name], backups['status_done'][0]['end_time'])
 
                 collectors['barman_first_backup'].add_metric(
-                        [server_name], backups['status_done'][-1]['end_time'])
+                    [server_name], backups['status_done'][-1]['end_time'])
 
             for number, backup in enumerate(backups['status_done'], 1):
                 collectors['barman_backups_size'].add_metric(
