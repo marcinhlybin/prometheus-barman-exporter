@@ -2,8 +2,8 @@
 
 Two exporters are available:
 
-* `barman_exporter_cli.py` which uses `barman` command and parses console output
-* `barman_exporter.py` which uses barman with Python which is awfully inconvenient but more reliable, I guess
+* `barman_exporter.py` - this one is recommended. It uses Barman's Python modules directly.
+* `barman_exporter_cli.py` - it runs `barman` from CLI and parses the output. In the future this one will parse JSON output when my pull request [#234](https://github.com/2ndquadrant-it/barman/pull/234) gets accepted.
 
 ## Grafana dashboard
 
@@ -41,7 +41,7 @@ Try if it works by running:
 ```
 # This is default IP and port.
 # If you used barman_exporter with `-l` argument adjust your connection details
-curl http://127.0.0.1:9780
+$ curl http://127.0.0.1:9780
 ```
 
 Any path is supported. You can use default `/metrics` or none.
@@ -55,16 +55,17 @@ You need Python3 to run it and following modules:
 $ pip3 install prometheus_client sh
 ```
 
+Note: `sh` is required only for `barman_exporter_cli.py`.
+
 ## Installation
 
 Copy `barman_exporter.py` file to /usr/local/bin/barman_exporter.
 
-Or use ansible which installs all requirements and includes systemd service file: https://github.com/ahes/ansible-barman-exporter
-
+Or use my ansible role [https://github.com/ahes/ansible-barman-exporter](ansible-barman-exporter) to install all requirements and add systemd service file.
 
 ## Prometheus configuration
 
-Please note that backup listing is I/O heavy process and can take a while. *Definitely do not run barman exporter every 5s or even 15s*. 15 minutes or more is reasonable with at least 120s timeout depending on how many backups and servers you have.
+Please note that backup listing is rather heavy I/O operation and can take a while. **Definitely do not run barman exporter every 5s or even 15s**. 15 minutes or more is reasonable with at least 120s timeout depending on how many backups and servers you have.
 
 Sample Prometheus configuration:
 
@@ -79,15 +80,15 @@ Sample Prometheus configuration:
 
 ## Metrics
 
-The `number=1` label determines the newest backup.
+The label `number=1` determines the newest backup.
 
-The metrics names `barman_bacukps_size` and `barman_backups_wal_size` show only successful backups. Failed backups will not be listed here.
+The metrics `barman_bacukps_size` and `barman_backups_wal_size` show only successful backups. Failed backups will not be listed here.
 
 The metric `barman_backups_total` includes failed backups. A number of failed backups is exposed in `barman_backups_failed`.
 
-The metric `barman_up` show output of `barman check SERVER_NAME` command. Output `OK` is `1.0`, `FAILED` is `0.0`.
+The metric `barman_up` shows checks as in command `barman check SERVER_NAME`. Output `OK` is `1.0`, `FAILED` is `0.0`.
 
-Using timestamps from the metrics `barman_last_backup` and `barman_first_backup` you can easily calculate how long ago a backup was completed:
+By using timestamps from metrics `barman_last_backup` and `barman_first_backup`, you can easily calculate how long ago backup completed:
 
 ```time() - barman_last_backup{instance="$instance", server="$server"}```
 
