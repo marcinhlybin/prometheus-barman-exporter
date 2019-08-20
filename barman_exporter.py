@@ -31,7 +31,8 @@ class PythonOutputWriter(output.ConsoleOutputWriter):
                 backup_id=backup_info.backup_id,
                 end_time=backup_info.end_time.timestamp(),
                 size=backup_size,
-                wal_size=wal_size))
+                wal_size=wal_size,
+                copy_time=backup_info.copy_stats['copy_time']))
         else:
             self.results['status_failed'].append(dict(
                 server_name=backup_info.server_name,
@@ -114,8 +115,14 @@ class BarmanCollector(object):
             barman_last_backup=core.GaugeMetricFamily(
                 "barman_last_backup", "Last successful backup timestamp",
                 labels=["server"]),
+            barman_last_backup_copy_time=core.GaugeMetricFamily(
+                "barman_last_backup_copy_time", "Last successful backup copy time",
+                labels=["server"]),
             barman_first_backup=core.GaugeMetricFamily(
                 "barman_first_backup", "First successful backup timestamp",
+                labels=["server"]),
+            barman_first_backup_copy_time=core.GaugeMetricFamily(
+                "barman_first_backup_copy_time", "First successful backup copy time",
                 labels=["server"]),
             barman_up=core.GaugeMetricFamily(
                 "barman_up", "Barman status checks",
@@ -124,7 +131,6 @@ class BarmanCollector(object):
 
         for server_name in self.server_names:
             backups = self.list_backup(server_name)
-
             collectors['barman_backups_total'].add_metric(
                 [server_name],
                 len(backups['status_done']) + len(backups['status_failed']))
@@ -135,9 +141,12 @@ class BarmanCollector(object):
             if backups['status_done']:
                 collectors['barman_last_backup'].add_metric(
                     [server_name], backups['status_done'][0]['end_time'])
-
+                collectors['barman_last_backup_copy_time'].add_metric(
+                    [server_name], backups['status_done'][0]['copy_time'])
                 collectors['barman_first_backup'].add_metric(
                     [server_name], backups['status_done'][-1]['end_time'])
+                collectors['barman_first_backup_copy_time'].add_metric(
+                    [server_name], backups['status_done'][-1]['copy_time'])
 
             for number, backup in enumerate(backups['status_done'], 1):
                 collectors['barman_backups_size'].add_metric(
