@@ -1,9 +1,6 @@
 # Barman exporter for Prometheus
 
-Two exporters are available:
-
-* `barman_exporter.py` - this one is recommended. It uses Barman's Python modules directly.
-* `barman_exporter_cli.py` - it runs `barman` from CLI and parses the output. In the future this one will parse JSON output when my pull request [#234](https://github.com/2ndquadrant-it/barman/pull/234) gets accepted.
+`barman_exporter.py` runs `barman` shell command with *experimental* JSON output I added to Barman 2.9. JSON output may change in the future and break some of functionalities in the exporter.
 
 ## Grafana dashboard
 
@@ -54,8 +51,6 @@ You need Python3 to run it and following modules:
 ```
 $ pip3 install prometheus_client sh
 ```
-
-Note: `sh` is required only for `barman_exporter_cli.py`.
 
 ## Installation
 
