@@ -17,6 +17,11 @@ class Barman:
         output = json.loads(str(output))
         return output
 
+    @classmethod
+    def version(cls):
+        version = barman_cli('-v').split()
+        return version[0]
+
     def servers(self):
         servers = self.cli('list-server')
         return list(servers.keys())
@@ -146,6 +151,11 @@ if __name__ == "__main__":
                         help="Space separated list of "
                              "backed up servers to check")
     args = parser.parse_args()
+
+    barman_version = tuple(int(v) for v in Barman.version().split('.'))
+    if barman_version < (2, 9):
+        print("ERROR: Barman version 2.9+ required")
+        sys.exit(1)
 
     try:
         addr, port = args.web_listen_address.split(":")
