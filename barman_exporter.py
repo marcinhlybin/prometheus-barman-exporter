@@ -37,6 +37,10 @@ class Barman:
         backups_failed = [ backup for backup in backups[server_name] if backup['status'] != 'DONE']
         return backups_done, backups_failed
 
+    def show_backup(self, server_name, backup_id):
+        backup = self.cli('show-backup', server_name, backup_id)
+        return backup[server_name]
+
 
 class BarmanCollector:
 
@@ -67,6 +71,9 @@ class BarmanCollector:
                 labels=["server"]),
             barman_last_backup=core.GaugeMetricFamily(
                 "barman_last_backup", "Last successful backup timestamp",
+                labels=["server"]),
+            barman_last_backup_copy_time=core.GaugeMetricFamily(
+                "barman_last_backup_copy_time", "Last successful backup copy time",
                 labels=["server"]),
             barman_first_backup=core.GaugeMetricFamily(
                 "barman_first_backup", "First successful backup timestamp",
@@ -103,6 +110,13 @@ class BarmanCollector:
 
             collectors['barman_backups_failed'].add_metric(
                 [server_name], len(backups_failed))
+
+            if len(backups_done) > 0:
+                last_backup = barman.show_backup(server_name, backups_done[0]['backup_id'])
+                last_backup_copy_time = last_backup['base_backup_information']['copy_time_seconds']
+
+                collectors['barman_last_backup_copy_time'].add_metric(
+                    [server_name], last_backup_copy_time)
 
             for number, backup in enumerate(backups_done, 1):
                 collectors['barman_backups_size'].add_metric(
