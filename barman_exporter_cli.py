@@ -2,6 +2,7 @@
 import sys
 import argparse
 import time
+import json
 from sh import barman as barman_cli
 from datetime import datetime
 import prometheus_client
@@ -10,60 +11,31 @@ from prometheus_client import core
 
 class Barman:
 
+    @staticmethod
+    def cli(*args, **kwargs):
+        output = barman_cli('-f', 'json', *args, **kwargs)
+        output = json.loads(str(output))
+        return output
+
     def servers(self):
-        return barman_cli('list-server', '--minimal').split()
+        servers = self.cli('list-server')
+        return list(servers.keys())
 
     def server_status(self, server_name):
-        status = barman_cli('status', server_name)
-        status_dict = self.parse_output(status)
-        return status_dict
+        status = self.cli('status', server_name)
+        status = { k:v['message'] for k, v in status[server_name].items() }
+        return status
 
     def server_check(self, server_name):
-        check = barman_cli('check', server_name, _ok_code=[0, 1])
-        check = self.parse_output(check)
-        check_dict = {}
-        for key, value in check.items():
-            value = 1 if value.startswith("OK") else 0
-            check_dict[key] = value
-
-        return check_dict
+        check = self.cli('check', server_name, _ok_code=[0, 1])
+        check = { k:1 if v['status'] == "OK" else 0 for k, v in check[server_name].items() } 
+        return check
 
     def list_backup(self, server_name):
-        backup_list = barman_cli('list-backup', server_name)
-        backups_done = []
-        backups_failed = []
-        for backup_line in backup_list.split("\n")[:-1]:
-            backup = {}
-            backup['server'] = server_name
-            try:
-                server_name_and_ts, date, size, wal_size = \
-                    backup_line.rsplit("-",3)
-                backup['date'] = date.strip()
-                backup['size'] = size.split(":")[1].strip()
-                backup['wal_size'] = wal_size.split(":")[1].strip()
-                backup['status'] = "done"
-                backups_done.append(backup)
-            except ValueError:
-                server_name_and_ts, status = backup_line.rsplit("-",1)
-                backup['status'] = status.lower()
-                backups_failed.append(backup)
-
+        backups = self.cli('list-backup', server_name)
+        backups_done = [ backup for backup in backups[server_name] if backup['status'] == 'DONE']
+        backups_failed = [ backup for backup in backups[server_name] if backup['status'] != 'DONE']
         return backups_done, backups_failed
-
-    @staticmethod
-    def parse_output(output):
-        output_dict = {}
-        for line in output.split("\n")[1:-1]:
-            if ":" not in line:
-                continue
-            key, value = line.split(":", 1)
-            key = key.strip().lower() \
-                .replace(".", "") \
-                .replace(" ", "_") \
-                .replace("-", "_")
-            output_dict[key] = value.strip()
-
-        return output_dict
 
 
 class BarmanCollector:
@@ -112,15 +84,15 @@ class BarmanCollector:
         for server_name in self.servers:
             server_status = barman.server_status(server_name)
 
-            if server_status['first_available_backup']:
+            if server_status['first_backup']:
                 first_backup = datetime.strptime(
-                    server_status['first_available_backup'], "%Y%m%dT%H%M%S")
+                    server_status['first_backup'], "%Y%m%dT%H%M%S")
                 collectors['barman_first_backup'].add_metric(
                     [server_name], first_backup.strftime("%s"))
 
-            if server_status['last_available_backup']:
+            if server_status['last_backup']:
                 last_backup = datetime.strptime(
-                    server_status['last_available_backup'], "%Y%m%dT%H%M%S")
+                    server_status['last_backup'], "%Y%m%dT%H%M%S")
                 collectors['barman_last_backup'].add_metric(
                     [server_name], last_backup.strftime("%s"))
 
@@ -132,16 +104,12 @@ class BarmanCollector:
             collectors['barman_backups_failed'].add_metric(
                 [server_name], len(backups_failed))
 
-            for number, backup in enumerate(backups_done):
-                number = str(number + 1)
-
+            for number, backup in enumerate(backups_done, 1):
                 collectors['barman_backups_size'].add_metric(
-                    [server_name, number],
-                    self.pretty_size_to_bytes(backup['size']))
+                    [server_name, str(number)], backup['size_bytes'])
 
                 collectors['barman_backups_wal_size'].add_metric(
-                    [server_name, number],
-                    self.pretty_size_to_bytes(backup['wal_size']))
+                    [server_name, str(number)], backup['wal_size_bytes'])
 
             server_check = barman.server_check(server_name)
             for check_name, check_value in server_check.items():
