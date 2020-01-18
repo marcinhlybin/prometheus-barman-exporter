@@ -56,7 +56,7 @@ $ pip3 install prometheus_client sh
 
 Copy `barman_exporter.py` file to /usr/local/bin/barman_exporter.
 
-Or use my ansible role [https://github.com/ahes/ansible-barman-exporter](ansible-barman-exporter) to install all requirements and add systemd service file.
+Or use my ansible role https://github.com/ahes/prometheus-barman-exporter/ to install all requirements and add systemd service file.
 
 ## Prometheus configuration
 
