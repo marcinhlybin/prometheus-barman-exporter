@@ -1,16 +1,15 @@
 from setuptools import setup
 
-setup(name='barman-exporter',
-      version='1.0',
+setup(name='barman_exporter',
+      version='1.0.3',
       description='Barman exporter for Prometheus',
       long_description='Barman exporter for Prometheus. Full description at https://github.com/ahes/prometheus-barman-exporter',
       url='https://github.com/ahes/prometheus-barman-exporter',
       author='Marcin Hlybin',
       author_email='marcin.hlybin@gmail.com',
       license='MIT',
-      packages=['barman-exporter'],
+      packages=['barman_exporter'],
       keywords='prometheus barman exporter barman-exporter',
-      # scripts=['bin/barman_exporter'],
       entry_points = {
         'console_scripts': ['barman-exporter=barman_exporter:main'],
       },
