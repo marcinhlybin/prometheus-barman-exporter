@@ -1,6 +1,6 @@
 # Barman exporter for Prometheus
 
-`barman-exporter` runs `barman` shell command with _experimental_ JSON output I added to Barman 2.9. JSON output may change in the future and break some of functionalities in the exporter.
+The `barman-exporter` runs `barman` shell command with _experimental_ JSON output I added to Barman 2.9. JSON output may change in the future and break some of functionalities in the exporter.
 
 By default barman exporter outputs metrics to stdout. If everything seems right you want to save it as textfile with `-f /var/lib/prometheus/node_exporter/barman.prom` and set up `node_exporter` to read from this path (`--collector.textfile.directory` option).
 
@@ -71,7 +71,7 @@ Barman exporter does not require any Prometheus configuration because it uses **
 
 ## Metrics
 
-The label `number=1` determines the newest backup.
+The label `number=1` indicates the newest backup.
 
 The metrics `barman_bacukps_size` and `barman_backups_wal_size` show only successful backups. Failed backups will not be listed here.
 
