@@ -42,7 +42,7 @@ class Barman:
         backups_done = [backup for backup in backups[server_name]
                         if backup['status'] == 'DONE']
         backups_failed = [
-            backup for backup in backups[server_name] if backup['status'] != 'DONE']
+            backup for backup in backups[server_name] if backup['status'] == 'FAILED']
         return backups_done, backups_failed
 
     def show_backup(self, server_name, backup_id):
