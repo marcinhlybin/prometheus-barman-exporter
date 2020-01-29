@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import sys
 import argparse
 import time
@@ -143,7 +142,7 @@ class BarmanCollector:
             yield collector
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="Barman exporter",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -177,3 +176,7 @@ if __name__ == "__main__":
         os.chmod(args.file, mode=int(args.mode, 8))
     else:
         print(generate_latest(registry).decode())
+
+
+if __name__ == "__main__":
+    main()

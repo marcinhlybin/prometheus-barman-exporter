@@ -1,6 +1,6 @@
 # Barman exporter for Prometheus
 
-`barman_exporter.py` runs `barman` shell command with _experimental_ JSON output I added to Barman 2.9. JSON output may change in the future and break some of functionalities in the exporter.
+`barman-exporter` runs `barman` shell command with _experimental_ JSON output I added to Barman 2.9. JSON output may change in the future and break some of functionalities in the exporter.
 
 By default barman exporter outputs metrics to stdout. If everything seems right you want to save it as textfile with `-f /var/lib/prometheus/node_exporter/barman.prom` and set up `node_exporter` to read from this path (`--collector.textfile.directory` option).
 
@@ -13,7 +13,7 @@ You can find basic grafana dashboard in `grafana-dashboard.json`. It is open for
 ## Usage
 
 ```
-usage: barman_exporter.py [-h] [-f TEXTFILE_PATH] [-u USER] [-g GROUP]
+usage: barman-exporter [-h] [-f TEXTFILE_PATH] [-u USER] [-g GROUP]
                           [-m MODE]
                           [servers [servers ...]]
 
@@ -35,34 +35,32 @@ optional arguments:
 
 For example:
 
-- `$ barman_exporter postgres-01`
-- `$ barman_exporter postgres-01 postgres-02`
-- `$ barman_exporter all`
-- `$ barman_exporter -f /var/lib/prometheus/node_exporter/barman.prom -u prometheus -g prometheus -m 0644 all`
+- `$ barman-exporter postgres-01`
+- `$ barman-exporter postgres-01 postgres-02`
+- `$ barman-exporter all`
+- `$ barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom -u prometheus -g prometheus -m 0644 all`
 
 ## Requirements
 
-You need Python3 to run it and following modules:
+You need Python3 along with following modules:
 
-```
-$ pip3 install prometheus_client sh
+- prometheus_client
+- sh
 
-# or
-$ pip3 install -r requirements.txt
-```
+All dependencies will be installed with pip command (see Installation).
 
 ## Installation
 
-Copy `barman_exporter.py` file to /usr/local/sbin/barman_exporter. Set `chmod 700` and `chown root:root` permissions.
-
-Alternatively you can use ansible playbook in `ansible/playbook.yml`.
+```
+pip3 install barman-exporter
+```
 
 ### Cron job to run barman-exporter
 
 Set up cron job to run every hour:
 
 ```
-0 * * * * root /usr/local/bin/barman_exporter -f /var/lib/prometheus/node_exporter/barman.prom
+0 * * * * root barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom
 ```
 
 ## Prometheus configuration
