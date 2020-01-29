@@ -1,6 +1,8 @@
 # Barman exporter for Prometheus
 
-`barman_exporter.py` runs `barman` shell command with *experimental* JSON output I added to Barman 2.9. JSON output may change in the future and break some of functionalities in the exporter.
+`barman_exporter.py` runs `barman` shell command with _experimental_ JSON output I added to Barman 2.9. JSON output may change in the future and break some of functionalities in the exporter.
+
+By default barman exporter outputs metrics to stdout. If everything seems right you want to save it as textfile with `-f /var/lib/prometheus/node_exporter/barman.prom` and set up `node_exporter` to read from this path (`--collector.textfile.directory` option).
 
 ## Grafana dashboard
 
@@ -11,38 +13,32 @@ You can find basic grafana dashboard in `grafana-dashboard.json`. It is open for
 ## Usage
 
 ```
-usage: barman_exporter [-h] [-l HOST:PORT] [servers [servers ...]]
+usage: barman_exporter.py [-h] [-f TEXTFILE_PATH] [-u USER] [-g GROUP]
+                          [-m MODE]
+                          [servers [servers ...]]
 
 Barman exporter
 
 positional arguments:
-  servers               Space separated list of backed up servers to check
-                        (default: ['all'])
+  servers               Space separated list of servers to check (default:
+                        ['all'])
 
 optional arguments:
   -h, --help            show this help message and exit
-  -l HOST:PORT, --web-listen-address HOST:PORT
-                        Address to listen on for web interface and telemetry.
-                        (default: 127.0.0.1:9780)
+  -f TEXTFILE_PATH, --file TEXTFILE_PATH
+                        Save output to textfile (default: None)
+  -u USER, --user USER  Textfile owner (default: prometheus)
+  -g GROUP, --group GROUP
+                        Textfile group (default: prometheus)
+  -m MODE, --mode MODE  Textfile mode (default: 0644)
 ```
 
 For example:
 
-* `$ barman_exporter postgres-01`
-* `$ barman_exporter postgres-01 postgres-02`
-* `$ barman_exporter all`
-* `$ barman_exporter -l 10.10.10.5:9780 all`
-
-Try if it works by running:
-
-```
-# This is default IP and port.
-# If you used barman_exporter with `-l` argument adjust your connection details
-$ curl http://127.0.0.1:9780
-```
-
-Any path is supported. You can use default `/metrics` or none.
-
+- `$ barman_exporter postgres-01`
+- `$ barman_exporter postgres-01 postgres-02`
+- `$ barman_exporter all`
+- `$ barman_exporter -f /var/lib/prometheus/node_exporter/barman.prom -u prometheus -g prometheus -m 0644 all`
 
 ## Requirements
 
@@ -50,28 +46,30 @@ You need Python3 to run it and following modules:
 
 ```
 $ pip3 install prometheus_client sh
+
+# or
+$ pip3 install -r requirements.txt
 ```
 
 ## Installation
 
-Copy `barman_exporter.py` file to /usr/local/bin/barman_exporter.
+Copy `barman_exporter.py` file to /usr/local/sbin/barman_exporter. Set `chmod 700` and `chown root:root` permissions.
 
-Or use my ansible role https://github.com/ahes/prometheus-barman-exporter/ to install all requirements and add systemd service file.
+Alternatively you can use ansible playbook in `ansible/playbook.yml`.
+
+### Cron job to run barman-exporter
+
+Set up cron job to run every hour:
+
+```
+0 * * * * root /usr/local/bin/barman_exporter -f /var/lib/prometheus/node_exporter/barman.prom
+```
 
 ## Prometheus configuration
 
-Please note that backup listing is rather heavy I/O operation and can take a while. **Definitely do not run barman exporter every 5s or even 15s**. 15 minutes or more is reasonable with at least 120s timeout depending on how many backups and servers you have.
+Please note that backup listing is rather heavy IO operation and can take a while. **Definitely do not run barman exporter every minute**.
 
-Sample Prometheus configuration:
-
-```
-- job_name: barman
-  scrape_interval: 15m
-  scrape_timeout: 2m
-  static_configs:
-    - targets:
-      - 'barman-01:9780'
-```
+Barman exporter does not require any Prometheus configuration because it uses **node-exporter** to get metrics from a textfile. Remember to use `--collector.textfile.directory` in node-exporter to point a directory with textfiles.
 
 ## Metrics
 
@@ -79,16 +77,15 @@ The label `number=1` determines the newest backup.
 
 The metrics `barman_bacukps_size` and `barman_backups_wal_size` show only successful backups. Failed backups will not be listed here.
 
-The metric `barman_backups_total` includes failed backups. A number of failed backups is exposed in `barman_backups_failed`.
+The metric `barman_backups_total` includes failed backups. A number of failed backups is exposed in `barman_backups_failed`. `barman_last_backup_copy_time` shows how long did it take to make the latest backup.
 
 The metric `barman_up` shows checks as in command `barman check SERVER_NAME`. Output `OK` is `1.0`, `FAILED` is `0.0`.
 
 By using timestamps from metrics `barman_last_backup` and `barman_first_backup`, you can easily calculate how long ago backup completed:
 
-```time() - barman_last_backup{instance="$instance", server="$server"}```
+`time() - barman_last_backup{instance="$instance", server="$server"}`
 
 ### Raw metrics
-
 
 ```
 # HELP barman_backups_size Size of available backups
@@ -125,28 +122,33 @@ barman_backups_failed{server="postgres-01"} 1.0
 # TYPE barman_last_backup gauge
 barman_last_backup{server="postgres-01"} 1.562537102e+09
 
+# HELP barman_last_backup_copy_time Last successful backup copy time
+# TYPE barman_last_backup_copy_time gauge
+barman_last_backup_copy_time{server="postgres-01"} 18706.918297
+
 # HELP barman_first_backup First successful backup timestamp
 # TYPE barman_first_backup gauge
 barman_first_backup{server="postgres-01"} 1.561154701e+09
 
 # HELP barman_up Barman status checks
 # TYPE barman_up gauge
-barman_up{check="postgresql",server="postgres-01"} 1.0
-barman_up{check="is_superuser",server="postgres-01"} 1.0
-barman_up{check="postgresql_streaming",server="postgres-01"} 1.0
-barman_up{check="wal_level",server="postgres-01"} 1.0
-barman_up{check="replication_slot",server="postgres-01"} 1.0
-barman_up{check="directories",server="postgres-01"} 1.0
-barman_up{check="retention_policy_settings",server="postgres-01"} 1.0
+barman_up{check="archiver_errors",server="postgres-01"} 1.0
 barman_up{check="backup_maximum_age",server="postgres-01"} 1.0
 barman_up{check="compression_settings",server="postgres-01"} 1.0
-barman_up{check="failed_backups",server="postgres-01"} 0.0
+barman_up{check="directories",server="postgres-01"} 1.0
+barman_up{check="failed_backups",server="postgres-01"} 1.0
+barman_up{check="is_superuser",server="postgres-01"} 1.0
 barman_up{check="minimum_redundancy_requirements",server="postgres-01"} 1.0
 barman_up{check="pg_basebackup",server="postgres-01"} 1.0
 barman_up{check="pg_basebackup_compatible",server="postgres-01"} 1.0
 barman_up{check="pg_basebackup_supports_tablespaces_mapping",server="postgres-01"} 1.0
 barman_up{check="pg_receivexlog",server="postgres-01"} 1.0
 barman_up{check="pg_receivexlog_compatible",server="postgres-01"} 1.0
+barman_up{check="postgresql",server="postgres-01"} 1.0
+barman_up{check="postgresql_streaming",server="postgres-01"} 1.0
 barman_up{check="receive_wal_running",server="postgres-01"} 1.0
-barman_up{check="archiver_errors",server="postgres-01"} 1.0
+barman_up{check="replication_slot",server="postgres-01"} 1.0
+barman_up{check="retention_policy_settings",server="postgres-01"} 1.0
+barman_up{check="systemid_coherence",server="postgres-01"} 1.0
+barman_up{check="wal_level",server="postgres-01"} 1.0
 ```

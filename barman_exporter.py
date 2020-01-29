@@ -3,10 +3,10 @@ import sys
 import argparse
 import time
 import json
+import shutil
 from sh import barman as barman_cli
 from datetime import datetime
-import prometheus_client
-from prometheus_client import core
+from prometheus_client import core, write_to_textfile, generate_latest
 
 
 class Barman:
@@ -147,13 +147,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Barman exporter",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-l', '--web-listen-address',
-                        metavar="HOST:PORT",
-                        default="127.0.0.1:9780",
-                        help="Address to listen on")
+
+    parser.add_argument('-f', '--file',
+                        metavar="TEXTFILE_PATH",
+                        required=False,
+                        help="Save output to textfile")
     parser.add_argument('servers', nargs="*", default=['all'],
                         help="Space separated list of "
-                             "backed up servers to check")
+                             "servers to check")
+    parser.add_argument('-u', '--user', metavar='USER',
+                        default='prometheus', help="Textfile owner")
+    parser.add_argument('-g', '--group', metavar='GROUP',
+                        default='prometheus', help="Textfile group")
+    parser.add_argument('-m', '--mode', metavar='MODE',
+                        default='0644', help="Textfile mode")
+
     args = parser.parse_args()
 
     barman_version = tuple(int(v) for v in Barman.version().split('.'))
@@ -161,14 +169,11 @@ if __name__ == "__main__":
         print("ERROR: Barman version 2.9+ required")
         sys.exit(1)
 
-    try:
-        addr, port = args.web_listen_address.split(":")
-    except ValueError:
-        print("Incorrect '--web.listen-address' value: '{}'.".format(
-              args.web_listen_address), "Use HOST:PORT.")
-        sys.exit(1)
+    registry = BarmanCollector(args.servers)
 
-    core.REGISTRY.register(BarmanCollector(args.servers))
-    prometheus_client.start_http_server(int(port), addr)
-    while True:
-        time.sleep(1)
+    if args.file:
+        write_to_textfile(args.file, registry)
+        shutil.chown(args.file, user=args.user, group=args.group)
+        os.chmod(args.file, mode=int(args.mode, 8))
+    else:
+        print(generate_latest(registry).decode())

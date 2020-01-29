@@ -1,0 +1,45 @@
+- hosts: barman
+  gather_facts: false
+  become: true
+
+  vars:
+    barman_exporter_url: https://raw.githubusercontent.com/ahes/prometheus-barman-exporter/master/barman_exporter.py
+    barman_exporter_textfile_directory: /var/lib/prometheus/node_exporter
+
+  tasks:
+    - name: Add apt packages
+      apt:
+        name: python3-sh
+        update_cache: true
+        cache_valid_time: 3600
+        state: present
+
+    - name: Add pip packages
+      pip:
+        name: prometheus_client
+        executable: pip3
+        state: present
+
+    - name: Add /usr/local/sbin/barman_exporter file
+      get_url:
+        url: "{{ barman_exporter_url }}"
+        dest: /usr/local/sbin/barman_exporter
+        owner: root
+        group: root
+        mode: 0700
+
+    - name: Add /var/lib/prometheus/node_exporter directory
+      file:
+        name: /var/lib/prometheus/node_exporter
+        owner: prometheus
+        group: prometheus
+        mode: 0750
+        state: directory
+
+    - name: Add barman-exporter cron job
+      cron:
+        name: barman_exporter
+        cron_file: /etc/cron.d/barman_exporter
+        minute: 0
+        user: root
+        job: /usr/local/sbin/barman_exporter -f {{ barman_exporter_textfile_directory }}/barman.prom
