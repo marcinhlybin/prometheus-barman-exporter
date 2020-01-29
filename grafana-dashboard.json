@@ -16,14 +16,15 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 40,
-  "iteration": 1562669970170,
+  "iteration": 1580300740273,
   "links": [],
   "panels": [
     {
       "cacheTimeout": null,
+      "datasource": null,
       "gridPos": {
         "h": 6,
-        "w": 3,
+        "w": 4,
         "x": 0,
         "y": 0
       },
@@ -31,41 +32,38 @@
       "links": [],
       "options": {
         "fieldOptions": {
-          "calcs": [
-            "last"
-          ],
+          "calcs": ["last"],
           "defaults": {
+            "mappings": [],
             "max": 100,
             "min": 0,
+            "thresholds": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ],
             "title": "",
             "unit": "percent"
           },
-          "mappings": [],
           "override": {},
-          "thresholds": [
-            {
-              "color": "green",
-              "index": 0,
-              "value": null
-            },
-            {
-              "color": "red",
-              "index": 1,
-              "value": 90
-            }
-          ],
           "values": false
         },
         "orientation": "auto",
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "6.2.5",
+      "pluginVersion": "6.5.3",
       "targets": [
         {
-          "expr": "(node_filesystem_size_bytes{instance=\"barman-01:9100\",mountpoint=~\".*barman.*\"} - node_filesystem_avail_bytes{instance=\"barman-01:9100\",mountpoint=~\".*barman.*\"}) / node_filesystem_size_bytes{instance=\"barman-01:9100\",mountpoint=~\".*barman.*\"} * 100",
+          "expr": "(node_filesystem_size_bytes{instance=\"barman-01:9100\",mountpoint=~\".*barman/$server\"} - node_filesystem_avail_bytes{instance=\"barman-01:9100\",mountpoint=~\".*barman/$server\"}) / node_filesystem_size_bytes{instance=\"barman-01:9100\",mountpoint=~\".*barman/$server\"} * 100",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ mountpoint }}",
           "refId": "A"
         }
       ],
@@ -78,11 +76,8 @@
       "cacheTimeout": null,
       "colorBackground": false,
       "colorValue": true,
-      "colors": [
-        "#299c46",
-        "rgba(237, 129, 40, 0.89)",
-        "#d44a3a"
-      ],
+      "colors": ["#299c46", "rgba(237, 129, 40, 0.89)", "#d44a3a"],
+      "datasource": null,
       "format": "h",
       "gauge": {
         "maxValue": 120,
@@ -93,8 +88,8 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 3,
-        "x": 3,
+        "w": 4,
+        "x": 4,
         "y": 0
       },
       "id": 8,
@@ -161,11 +156,8 @@
       "cacheTimeout": null,
       "colorBackground": false,
       "colorValue": false,
-      "colors": [
-        "#299c46",
-        "rgba(237, 129, 40, 0.89)",
-        "#d44a3a"
-      ],
+      "colors": ["#299c46", "rgba(237, 129, 40, 0.89)", "#d44a3a"],
+      "datasource": null,
       "decimals": 1,
       "format": "s",
       "gauge": {
@@ -176,9 +168,9 @@
         "thresholdMarkers": true
       },
       "gridPos": {
-        "h": 6,
-        "w": 3,
-        "x": 6,
+        "h": 3,
+        "w": 4,
+        "x": 8,
         "y": 0
       },
       "id": 24,
@@ -245,11 +237,8 @@
       "cacheTimeout": null,
       "colorBackground": false,
       "colorValue": true,
-      "colors": [
-        "#299c46",
-        "#AD0317",
-        "#AD0317"
-      ],
+      "colors": ["#299c46", "#AD0317", "#AD0317"],
+      "datasource": null,
       "format": "none",
       "gauge": {
         "maxValue": 100,
@@ -260,7 +249,7 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 3,
+        "w": 4,
         "x": 12,
         "y": 0
       },
@@ -329,11 +318,8 @@
       "cacheTimeout": null,
       "colorBackground": false,
       "colorValue": true,
-      "colors": [
-        "#AD0317",
-        "#37872D",
-        "#299c46"
-      ],
+      "colors": ["#AD0317", "#37872D", "#299c46"],
+      "datasource": null,
       "format": "none",
       "gauge": {
         "maxValue": 100,
@@ -344,8 +330,8 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 15,
+        "w": 8,
+        "x": 16,
         "y": 0
       },
       "id": 19,
@@ -407,18 +393,96 @@
           "value": "null"
         }
       ],
-      "valueName": "avg"
+      "valueName": "current"
+    },
+    {
+      "cacheTimeout": null,
+      "colorBackground": false,
+      "colorValue": false,
+      "colors": ["#299c46", "rgba(237, 129, 40, 0.89)", "#d44a3a"],
+      "datasource": null,
+      "decimals": 1,
+      "format": "s",
+      "gauge": {
+        "maxValue": 120,
+        "minValue": 0,
+        "show": false,
+        "thresholdLabels": false,
+        "thresholdMarkers": true
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 8,
+        "y": 3
+      },
+      "id": 25,
+      "interval": null,
+      "links": [],
+      "mappingType": 1,
+      "mappingTypes": [
+        {
+          "name": "value to text",
+          "value": 1
+        },
+        {
+          "name": "range to text",
+          "value": 2
+        }
+      ],
+      "maxDataPoints": 100,
+      "nullPointMode": "connected",
+      "nullText": null,
+      "options": {},
+      "pluginVersion": "6.2.5",
+      "postfix": "",
+      "postfixFontSize": "50%",
+      "prefix": "",
+      "prefixFontSize": "50%",
+      "rangeMaps": [
+        {
+          "from": "null",
+          "text": "N/A",
+          "to": "null"
+        }
+      ],
+      "sparkline": {
+        "fillColor": "rgba(31, 118, 189, 0.18)",
+        "full": false,
+        "lineColor": "rgb(31, 120, 193)",
+        "show": false
+      },
+      "tableColumn": "",
+      "targets": [
+        {
+          "expr": "barman_last_backup_copy_time{server=\"$server\"}",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "thresholds": "48",
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Last backup copy time",
+      "type": "singlestat",
+      "valueFontSize": "80%",
+      "valueMaps": [
+        {
+          "op": "=",
+          "text": "N/A",
+          "value": "null"
+        }
+      ],
+      "valueName": "current"
     },
     {
       "cacheTimeout": null,
       "colorBackground": true,
       "colorPrefix": false,
       "colorValue": false,
-      "colors": [
-        "#299c46",
-        "#F2495C",
-        "#F2495C"
-      ],
+      "colors": ["#299c46", "#F2495C", "#F2495C"],
+      "datasource": null,
       "decimals": null,
       "format": "none",
       "gauge": {
@@ -430,8 +494,8 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 15,
+        "w": 8,
+        "x": 16,
         "y": 3
       },
       "id": 23,
@@ -500,13 +564,16 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": null,
       "fill": 0,
+      "fillGradient": 0,
       "gridPos": {
         "h": 10,
         "w": 12,
         "x": 0,
         "y": 6
       },
+      "hiddenSeries": false,
       "id": 20,
       "legend": {
         "alignAsTable": true,
@@ -522,7 +589,9 @@
       "linewidth": 2,
       "links": [],
       "nullPointMode": "null",
-      "options": {},
+      "options": {
+        "dataLinks": []
+      },
       "percentage": false,
       "pointradius": 2,
       "points": false,
@@ -539,6 +608,7 @@
         {
           "expr": "barman_backups_size{server=\"$server\", number=\"1\"}\n",
           "format": "time_series",
+          "interval": "15m",
           "intervalFactor": 1,
           "legendFormat": "Backup size",
           "refId": "A"
@@ -546,6 +616,7 @@
         {
           "expr": "barman_backups_wal_size{server=\"$server\", number=\"1\"}\n",
           "format": "time_series",
+          "interval": "15m",
           "intervalFactor": 1,
           "legendFormat": "WAL size",
           "refId": "B"
@@ -597,13 +668,16 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": null,
       "fill": 0,
+      "fillGradient": 0,
       "gridPos": {
         "h": 10,
         "w": 12,
         "x": 12,
         "y": 6
       },
+      "hiddenSeries": false,
       "id": 6,
       "legend": {
         "avg": false,
@@ -618,7 +692,9 @@
       "linewidth": 2,
       "links": [],
       "nullPointMode": "null",
-      "options": {},
+      "options": {
+        "dataLinks": []
+      },
       "percentage": false,
       "pointradius": 2,
       "points": false,
@@ -635,8 +711,9 @@
         {
           "expr": "hour(time() - barman_last_backup{server=\"$server\"})",
           "format": "time_series",
-          "interval": "",
-          "intervalFactor": 10,
+          "instant": false,
+          "interval": "15m",
+          "intervalFactor": 1,
           "legendFormat": "",
           "refId": "A"
         }
@@ -688,13 +765,16 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": null,
       "fill": 0,
+      "fillGradient": 0,
       "gridPos": {
         "h": 10,
         "w": 12,
         "x": 0,
         "y": 16
       },
+      "hiddenSeries": false,
       "id": 16,
       "legend": {
         "avg": false,
@@ -709,7 +789,9 @@
       "linewidth": 2,
       "links": [],
       "nullPointMode": "null",
-      "options": {},
+      "options": {
+        "dataLinks": []
+      },
       "percentage": false,
       "pointradius": 2,
       "points": false,
@@ -787,13 +869,16 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": null,
       "fill": 0,
+      "fillGradient": 0,
       "gridPos": {
         "h": 10,
         "w": 12,
         "x": 12,
         "y": 16
       },
+      "hiddenSeries": false,
       "id": 4,
       "legend": {
         "avg": false,
@@ -808,7 +893,9 @@
       "linewidth": 2,
       "links": [],
       "nullPointMode": "null",
-      "options": {},
+      "options": {
+        "dataLinks": []
+      },
       "percentage": false,
       "pointradius": 2,
       "points": false,
@@ -825,6 +912,7 @@
         {
           "expr": "barman_backups_total{server=\"$server\"} - barman_backups_failed{server=\"$server\"}\n",
           "format": "time_series",
+          "interval": "15m",
           "intervalFactor": 1,
           "legendFormat": "",
           "refId": "A"
@@ -873,7 +961,7 @@
     }
   ],
   "refresh": "5s",
-  "schemaVersion": 18,
+  "schemaVersion": 21,
   "style": "dark",
   "tags": [],
   "templating": {
@@ -906,7 +994,7 @@
     ]
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
@@ -922,20 +1010,10 @@
       "2h",
       "1d"
     ],
-    "time_options": [
-      "5m",
-      "15m",
-      "1h",
-      "6h",
-      "12h",
-      "24h",
-      "2d",
-      "7d",
-      "30d"
-    ]
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
   },
   "timezone": "",
   "title": "Barman",
   "uid": "Jb2lonIWk",
-  "version": 18
+  "version": 26
 }
