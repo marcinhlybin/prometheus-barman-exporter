@@ -1,8 +1,14 @@
 # Barman exporter for Prometheus
 
-The `barman-exporter` runs `barman` shell command with _experimental_ JSON output I added to Barman 2.9. JSON output may change in the future and break some of functionalities in the exporter.
+The `barman-exporter` runs `barman` shell command with _experimental_ JSON output I added to Barman 2.9. JSON output may change in the future and break some of the functionalities in the exporter.
 
-By default barman exporter outputs metrics to stdout. If everything seems right you want to save it as textfile with `-f /var/lib/prometheus/node_exporter/barman.prom` and set up `node_exporter` to read from this path (`--collector.textfile.directory` option).
+By default `barman-exporter` outputs the metrics to stdout. If everything looks good you may want to export it as a textfile by running:
+
+```
+barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom
+```
+
+and tell `node_exporter` to use it with `--collector.textfile.directory` option.
 
 ## Grafana dashboard
 
@@ -38,7 +44,7 @@ For example:
 - `$ barman-exporter postgres-01`
 - `$ barman-exporter postgres-01 postgres-02`
 - `$ barman-exporter all`
-- `$ barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom -u prometheus -g prometheus -m 0644 all`
+- `$ barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom -u prometheus -g prometheus -m 0640 all`
 
 ## Requirements
 
@@ -65,23 +71,26 @@ Set up cron job to run every hour:
 
 ## Prometheus configuration
 
-Please note that backup listing is rather heavy IO operation and can take a while. **Definitely do not run barman exporter every minute**.
+Please note that `barman-exporter` is listing all backups and it is rather quite I/O heavy operation. It can take a while to complete. 
 
-Barman exporter does not require any Prometheus configuration because it uses **node-exporter** to get metrics from a textfile. Remember to use `--collector.textfile.directory` in node-exporter to point a directory with textfiles.
+**Definitely do not run barman exporter every minute**.
+
+Barman exporter does not require any Prometheus configuration because it uses **node-exporter** to parse the metrics from a textfile. Remember to use `--collector.textfile.directory` in `node-exporter` to define a directory with textfiles.
 
 ## Metrics
 
-The label `number=1` indicates the newest backup.
+- `number=1` label indicates the newest backup
+- `barman_bacukps_size` and `barman_backups_wal_size` show successful backups only. Failed backups will not be listed here
+- `barman_backups_total` includes failed backups
+- `barman_backups_failed`exposes the number of failed backups
+- `barman_last_backup_copy_time` shows how long it takes to make a backup
+- `barman_up` shows all checks from `barman check SERVER_NAME` command. Output `OK` is `1.0`, `FAILED` is `0.0`.
 
-The metrics `barman_bacukps_size` and `barman_backups_wal_size` show only successful backups. Failed backups will not be listed here.
+With `barman_last_backup` and `barman_first_backup` you can easily calculate when the latest backup completed:
 
-The metric `barman_backups_total` includes failed backups. A number of failed backups is exposed in `barman_backups_failed`. `barman_last_backup_copy_time` shows how long did it take to make the latest backup.
-
-The metric `barman_up` shows checks as in command `barman check SERVER_NAME`. Output `OK` is `1.0`, `FAILED` is `0.0`.
-
-By using timestamps from metrics `barman_last_backup` and `barman_first_backup`, you can easily calculate how long ago backup completed:
-
-`time() - barman_last_backup{instance="$instance", server="$server"}`
+```
+time() - barman_last_backup{instance="$instance", server="$server"}
+```
 
 ### Raw metrics
 
