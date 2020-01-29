@@ -28,18 +28,21 @@ class Barman:
 
     def server_status(self, server_name):
         status = self.cli('status', server_name)
-        status = { k:v['message'] for k, v in status[server_name].items() }
+        status = {k: v['message'] for k, v in status[server_name].items()}
         return status
 
     def server_check(self, server_name):
         check = self.cli('check', server_name, _ok_code=[0, 1])
-        check = { k:1 if v['status'] == "OK" else 0 for k, v in check[server_name].items() } 
+        check = {k: 1 if v['status'] == "OK" else 0 for k,
+                 v in check[server_name].items()}
         return check
 
     def list_backup(self, server_name):
         backups = self.cli('list-backup', server_name)
-        backups_done = [ backup for backup in backups[server_name] if backup['status'] == 'DONE']
-        backups_failed = [ backup for backup in backups[server_name] if backup['status'] != 'DONE']
+        backups_done = [backup for backup in backups[server_name]
+                        if backup['status'] == 'DONE']
+        backups_failed = [
+            backup for backup in backups[server_name] if backup['status'] != 'DONE']
         return backups_done, backups_failed
 
     def show_backup(self, server_name, backup_id):
@@ -117,7 +120,8 @@ class BarmanCollector:
                 [server_name], len(backups_failed))
 
             if len(backups_done) > 0:
-                last_backup = barman.show_backup(server_name, backups_done[0]['backup_id'])
+                last_backup = barman.show_backup(
+                    server_name, backups_done[0]['backup_id'])
                 last_backup_copy_time = last_backup['base_backup_information']['copy_time_seconds']
 
                 collectors['barman_last_backup_copy_time'].add_metric(
