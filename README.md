@@ -52,7 +52,7 @@ For example:
 - `$ barman-exporter postgres-01`
 - `$ barman-exporter postgres-01 postgres-02`
 - `$ barman-exporter all`
-- `$ barman-exporter -l 10.10.10.10:9780 -c 900
+- `$ barman-exporter -l 10.10.10.10:9780 -c 900`
 - `$ barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom -u prometheus -g prometheus -m 0640 all`
 
 ## Requirements
