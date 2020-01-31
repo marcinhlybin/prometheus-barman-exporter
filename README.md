@@ -1,14 +1,16 @@
 # Barman exporter for Prometheus
 
-The `barman-exporter` runs `barman` shell command with _experimental_ JSON output I added to Barman 2.9. JSON output may change in the future and break some of the functionalities in the exporter.
+The barman exporter runs `barman` shell command with _experimental_ JSON output I added to Barman 2.9. JSON output may change in the future and break some of the functionalities in the exporter.
 
-By default `barman-exporter` outputs the metrics to stdout. If everything looks good you may want to export it as a textfile by running:
+By default `barman-exporter` runs as a service on 127.0.0.1:9780 with metrics refresh every hours.
+
+You can also run barman-exporter from cron with `-f` to output results to a textfile:
 
 ```
 barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom
 ```
 
-and tell `node_exporter` to use it with `--collector.textfile.directory` option.
+Remember to tell `node_exporter` to use this path with `--collector.textfile.directory` option.
 
 ## Grafana dashboard
 
@@ -19,9 +21,9 @@ You can find basic grafana dashboard in `grafana-dashboard.json`. It is open for
 ## Usage
 
 ```
-usage: barman-exporter [-h] [-f TEXTFILE_PATH] [-u USER] [-g GROUP]
-                          [-m MODE]
-                          [servers [servers ...]]
+usage: barman-exporter [-h] [-u USER] [-g GROUP] [-m MODE] [-c SECONDS]
+                       [-f TEXTFILE_PATH | -l HOST:PORT | -d]
+                       [servers [servers ...]]
 
 Barman exporter
 
@@ -31,12 +33,18 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -f TEXTFILE_PATH, --file TEXTFILE_PATH
-                        Save output to textfile (default: None)
   -u USER, --user USER  Textfile owner (default: prometheus)
   -g GROUP, --group GROUP
                         Textfile group (default: prometheus)
   -m MODE, --mode MODE  Textfile mode (default: 0644)
+  -c SECONDS, --cache-time SECONDS
+                        Number of seconds to cache barman output for (default:
+                        3600)
+  -f TEXTFILE_PATH, --file TEXTFILE_PATH
+                        Save output to textfile (default: None)
+  -l HOST:PORT, --listen-address HOST:PORT
+                        Address to listen on (default: 127.0.0.1:9780)
+  -d, --debug           Print output to stdout (default: False)
 ```
 
 For example:
@@ -44,6 +52,7 @@ For example:
 - `$ barman-exporter postgres-01`
 - `$ barman-exporter postgres-01 postgres-02`
 - `$ barman-exporter all`
+- `$ barman-exporter -l 10.10.10.10:9780 -c 900
 - `$ barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom -u prometheus -g prometheus -m 0640 all`
 
 ## Requirements
@@ -61,13 +70,34 @@ All dependencies will be installed with pip command (see Installation).
 pip3 install barman-exporter
 ```
 
-### Cron job to run barman-exporter
+### Systemd service file to run barman-exporter as a service
 
-Set up cron job to run every hour:
+```
+[Unit]
+Description=Barman Exporter
+After=network-online.target
+
+[Service]
+Type=simple
+User=barman
+Group=barman
+ExecStart=/usr/local/bin/barman-exporter -l 10.10.10.10:9780 -c 3600
+SyslogIdentifier=barman_exporter
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Cron job to run barman-exporter with textfile output
+
+If you don't want to use barman exporter as a web service you can run it with `-f` argument as a cron job. To run it every hour:
 
 ```
 0 * * * * root barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom
 ```
+
+In this mode barman exporter does not require any Prometheus configuration because it uses **node-exporter** to parse the metrics from a textfile. Remember to use `--collector.textfile.directory` in `node-exporter` to define a directory with textfiles.
 
 ## Prometheus configuration
 
@@ -75,7 +105,15 @@ Please note that `barman-exporter` is listing all backups and it is rather quite
 
 **Definitely do not run barman exporter every minute**.
 
-Barman exporter does not require any Prometheus configuration because it uses **node-exporter** to parse the metrics from a textfile. Remember to use `--collector.textfile.directory` in `node-exporter` to define a directory with textfiles.
+Also do not set up very low cache time.
+
+```
+scrape_configs:
+  - job_name: barman
+    static_configs:
+      - targets:
+        - 10.10.10.10:9780'
+```
 
 ## Metrics
 
@@ -85,6 +123,7 @@ Barman exporter does not require any Prometheus configuration because it uses **
 - `barman_backups_failed`exposes the number of failed backups
 - `barman_last_backup_copy_time` shows how long it takes to make a backup
 - `barman_up` shows all checks from `barman check SERVER_NAME` command. Output `OK` is `1.0`, `FAILED` is `0.0`.
+- `barman_metrics_update` shows a timestamp when barman metrics has been last updated
 
 With `barman_last_backup` and `barman_first_backup` you can easily calculate when the latest backup completed:
 
@@ -158,4 +197,8 @@ barman_up{check="replication_slot",server="postgres-01"} 1.0
 barman_up{check="retention_policy_settings",server="postgres-01"} 1.0
 barman_up{check="systemid_coherence",server="postgres-01"} 1.0
 barman_up{check="wal_level",server="postgres-01"} 1.0
+
+# HELP barman_metrics_update Barman metrics update timestamp
+# TYPE barman_metrics_update gauge
+barman_metrics_update{server="autouncle"} 1.580485601e+09
 ```

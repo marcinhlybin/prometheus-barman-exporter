@@ -1,14 +1,30 @@
+import os
 import sys
 import argparse
 import time
 import json
 import shutil
-from sh import barman as barman_cli
+import threading
+import prometheus_client
+from prometheus_client import core
 from datetime import datetime
-from prometheus_client import core, write_to_textfile, generate_latest
+
+sys.tracebacklimit = 0
+
+try:
+    from sh import barman as barman_cli
+except ImportError as e:
+    raise ImportError('ERROR: Barman binary not found!') from e
 
 
 class Barman:
+    def __init__(self):
+        self.check_barman_version()
+
+    def check_barman_version(self):
+        barman_version = tuple(int(v) for v in self.version().split('.'))
+        if barman_version < (2, 9):
+            raise ValueError("Barman version 2.9+ required")
 
     @staticmethod
     def cli(*args, **kwargs):
@@ -16,8 +32,7 @@ class Barman:
         output = json.loads(str(output))
         return output
 
-    @classmethod
-    def version(cls):
+    def version(self):
         version = barman_cli('-v').split()
         return version[0]
 
@@ -49,21 +64,26 @@ class Barman:
         return backup[server_name]
 
 
+class BarmanServer:
+
+    def __init__(self, barman, server_name):
+        self.barman = barman
+        self.name = server_name
+        self.status = barman.server_status(server_name)
+        self.checks = barman.server_check(server_name)
+        self.backups_done, self.backups_failed = barman.list_backup(
+            server_name)
+
+    def backup(self, backup_id):
+        return self.barman.show_backup(self.name, backup_id)
+
+
 class BarmanCollector:
 
-    def __init__(self, servers):
+    def __init__(self, barman, servers):
+        self.barman = barman
         self.servers = servers
-
-    @staticmethod
-    def pretty_size_to_bytes(size, suffixes="KMGTPEZY"):
-        size, suffix = size.split()
-        unit = 1024 if "iB" in suffix else 1000
-        exponent = suffixes.find(suffix[0].upper()) + 1
-        size_bytes = float(size) * (unit ** exponent)
-        return int(size_bytes)
-
-    def collect(self):
-        collectors = dict(
+        self.collectors = dict(
             barman_backups_size=core.GaugeMetricFamily(
                 'barman_backups_size', "Size of available backups",
                 labels=['server', 'number']),
@@ -87,70 +107,126 @@ class BarmanCollector:
                 labels=["server"]),
             barman_up=core.GaugeMetricFamily(
                 "barman_up", "Barman status checks",
-                labels=["server", "check"])
+                labels=["server", "check"]),
+            barman_metrics_update=core.GaugeMetricFamily(
+                "barman_metrics_update", "Barman metrics update timestamp",
+                labels=["server"])
         )
 
-        barman = Barman()
+    def collect(self):
+        for server_name in self.barman_servers():
+            barman_server = BarmanServer(self.barman, server_name)
+            self.collect_first_backup(barman_server)
+            self.collect_last_backup(barman_server)
+            self.collect_backups_total(barman_server)
+            self.collect_backups_failed(barman_server)
+            self.collect_last_backup_copy_time(barman_server)
+            self.collect_barman_backups_size(barman_server)
+            self.collect_barman_backups_wal_size(barman_server)
+            self.collect_barman_up(barman_server)
+            self.collect_barman_metrics_update(barman_server)
 
-        if self.servers[0] == "all":
-            self.servers = barman.servers()
-
-        for server_name in self.servers:
-            server_status = barman.server_status(server_name)
-
-            if server_status['first_backup']:
-                first_backup = datetime.strptime(
-                    server_status['first_backup'], "%Y%m%dT%H%M%S")
-                collectors['barman_first_backup'].add_metric(
-                    [server_name], first_backup.strftime("%s"))
-
-            if server_status['last_backup']:
-                last_backup = datetime.strptime(
-                    server_status['last_backup'], "%Y%m%dT%H%M%S")
-                collectors['barman_last_backup'].add_metric(
-                    [server_name], last_backup.strftime("%s"))
-
-            backups_done, backups_failed = barman.list_backup(server_name)
-
-            collectors['barman_backups_total'].add_metric(
-                [server_name], len(backups_done) + len(backups_failed))
-
-            collectors['barman_backups_failed'].add_metric(
-                [server_name], len(backups_failed))
-
-            if len(backups_done) > 0:
-                last_backup = barman.show_backup(
-                    server_name, backups_done[0]['backup_id'])
-                last_backup_copy_time = last_backup['base_backup_information']['copy_time_seconds']
-
-                collectors['barman_last_backup_copy_time'].add_metric(
-                    [server_name], last_backup_copy_time)
-
-            for number, backup in enumerate(backups_done, 1):
-                collectors['barman_backups_size'].add_metric(
-                    [server_name, str(number)], backup['size_bytes'])
-
-                collectors['barman_backups_wal_size'].add_metric(
-                    [server_name, str(number)], backup['wal_size_bytes'])
-
-            server_check = barman.server_check(server_name)
-            for check_name, check_value in server_check.items():
-                collectors['barman_up'].add_metric(
-                    [server_name, check_name], check_value)
-
-        for collector in collectors.values():
+        for collector in self.collectors.values():
             yield collector
+
+    def barman_servers(self):
+        if self.servers[0] == "all":
+            return self.barman.servers()
+        else:
+            return self.servers
+
+    def collect_first_backup(self, barman_server):
+        if barman_server.status['first_backup']:
+            first_backup = datetime.strptime(
+                barman_server.status['first_backup'], "%Y%m%dT%H%M%S")
+            self.collectors['barman_first_backup'].add_metric(
+                [barman_server.name], first_backup.strftime("%s"))
+
+    def collect_last_backup(self, barman_server):
+        if barman_server.status['last_backup']:
+            last_backup = datetime.strptime(
+                barman_server.status['last_backup'], "%Y%m%dT%H%M%S")
+            self.collectors['barman_last_backup'].add_metric(
+                [barman_server.name], last_backup.strftime("%s"))
+
+    def collect_backups_total(self, barman_server):
+        self.collectors['barman_backups_total'].add_metric([barman_server.name], len(
+            barman_server.backups_done) + len(barman_server.backups_failed))
+
+    def collect_backups_failed(self, barman_server):
+        self.collectors['barman_backups_failed'].add_metric(
+            [barman_server.name], len(barman_server.backups_failed))
+
+    def collect_last_backup_copy_time(self, barman_server):
+        last_backup_copy_time = 0
+        if len(barman_server.backups_done) > 0:
+            backup_id = barman_server.backups_done[0]['backup_id']
+            last_backup = barman_server.backup(backup_id)
+            last_backup_copy_time = last_backup['base_backup_information']['copy_time_seconds']
+
+        self.collectors['barman_last_backup_copy_time'].add_metric(
+            [barman_server.name], last_backup_copy_time)
+
+    def collect_barman_backups_size(self, barman_server):
+        for number, backup in enumerate(barman_server.backups_done, 1):
+            self.collectors['barman_backups_size'].add_metric(
+                [barman_server.name, str(number)], backup['size_bytes'])
+
+    def collect_barman_backups_wal_size(self, barman_server):
+        for number, backup in enumerate(barman_server.backups_done, 1):
+            self.collectors['barman_backups_wal_size'].add_metric(
+                [barman_server.name, str(number)], backup['wal_size_bytes'])
+
+    def collect_barman_up(self, barman_server):
+        for check_name, check_value in barman_server.checks.items():
+            self.collectors['barman_up'].add_metric(
+                [barman_server.name, check_name], check_value)
+
+    def collect_barman_metrics_update(self, barman_server):
+        self.collectors['barman_metrics_update'].add_metric(
+            [barman_server.name], int(time.time()))
+
+
+class BarmanCollectorCache:
+    def __init__(self, barman, servers, cache_time):
+        self.barman = barman
+        self.servers = servers
+        self.cache_time = cache_time
+        self._collect = []
+        self.start_collect_thread()
+
+    def start_collect_thread(self):
+        t = threading.Thread(target=self.collect_loop)
+        t.daemon = True
+        t.start()
+
+    def collect_loop(self):
+        while True:
+            barman_collector = BarmanCollector(self.barman, self.servers)
+            self._collect = list(barman_collector.collect())
+            time.sleep(self.cache_time)
+
+    def collect(self):
+        return self._collect
 
 
 def main():
+    args = parse_args()
+
+    if args.debug:
+        sys.tracebacklimit = 1
+        print_metrics_to_stdout(args)
+    elif args.file:
+        write_metrics_to_file(args)
+    else:
+        start_exporter_service(args)
+
+
+def parse_args():
     parser = argparse.ArgumentParser(
         description="Barman exporter",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-f', '--file',
-                        metavar="TEXTFILE_PATH",
-                        required=False,
-                        help="Save output to textfile")
     parser.add_argument('servers', nargs="*", default=['all'],
                         help="Space separated list of "
                              "servers to check")
@@ -160,22 +236,51 @@ def main():
                         default='prometheus', help="Textfile group")
     parser.add_argument('-m', '--mode', metavar='MODE',
                         default='0644', help="Textfile mode")
+    parser.add_argument('-c', '--cache-time', metavar='SECONDS', type=int,
+                        default=3600, help='Number of seconds to cache barman output for')
 
-    args = parser.parse_args()
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-f', '--file',
+                       metavar="TEXTFILE_PATH",
+                       help="Save output to textfile")
+    group.add_argument('-l', '--listen-address',
+                       default='127.0.0.1:9780',
+                       metavar="HOST:PORT",
+                       help="Address to listen on")
+    group.add_argument('-d', '--debug',
+                       action='store_true',
+                       help="Print output to stdout")
 
-    barman_version = tuple(int(v) for v in Barman.version().split('.'))
-    if barman_version < (2, 9):
-        print("ERROR: Barman version 2.9+ required")
-        sys.exit(1)
+    return parser.parse_args()
 
-    registry = BarmanCollector(args.servers)
 
-    if args.file:
-        write_to_textfile(args.file, registry)
-        shutil.chown(args.file, user=args.user, group=args.group)
-        os.chmod(args.file, mode=int(args.mode, 8))
-    else:
-        print(generate_latest(registry).decode())
+def write_metrics_to_file(args):
+    registry = BarmanCollector(Barman(), args.servers)
+    prometheus_client.write_to_textfile(args.file, registry)
+    shutil.chown(args.file, user=args.user, group=args.group)
+    os.chmod(args.file, mode=int(args.mode, 8))
+
+
+def start_exporter_service(args):
+    try:
+        addr, port = args.listen_address.split(":")
+    except ValueError as e:
+        raise ValueError("Incorrect '--listen-address' value: '{}'.".format(
+            args.listen_address), "Use HOST:PORT.") from e
+
+    registry = BarmanCollectorCache(Barman(), args.servers, args.cache_time)
+    core.REGISTRY.register(registry)
+
+    print("Listening on " + args.listen_address)
+    prometheus_client.start_http_server(int(port), addr)
+
+    while True:
+        time.sleep(1)
+
+
+def print_metrics_to_stdout(args):
+    registry = BarmanCollector(Barman(), args.servers)
+    print(prometheus_client.generate_latest(registry).decode())
 
 
 if __name__ == "__main__":
