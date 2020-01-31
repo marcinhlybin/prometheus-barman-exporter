@@ -2,7 +2,7 @@
 
 The barman exporter runs `barman` shell command with _experimental_ JSON output I added to Barman 2.9. JSON output may change in the future and break some of the functionalities in the exporter.
 
-By default `barman-exporter` runs as a service on 127.0.0.1:9780 with metrics refresh every hours.
+By default `barman-exporter` runs as a service on 127.0.0.1:9780 with metrics refreshed every hour.
 
 You can also run barman-exporter from cron with `-f` to output results to a textfile:
 
