@@ -373,7 +373,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "barman_backup_total{server=\"$server\"} - barman_backup_failed{server=\"$server\"}",
+          "expr": "barman_backups_total{server=\"$server\"} - barman_backups_failed{server=\"$server\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "",
@@ -537,7 +537,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "barman_backup_failed{server=\"$server\"}",
+          "expr": "barman_backups_failed{server=\"$server\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "",
@@ -910,7 +910,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "barman_backup_total{server=\"$server\"} - barman_backup_failed{server=\"$server\"}\n",
+          "expr": "barman_backups_total{server=\"$server\"} - barman_backups_failed{server=\"$server\"}\n",
           "format": "time_series",
           "interval": "15m",
           "intervalFactor": 1,

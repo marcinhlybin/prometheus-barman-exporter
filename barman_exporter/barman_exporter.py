@@ -90,11 +90,11 @@ class BarmanCollector:
             barman_backup_wal_size=core.GaugeMetricFamily(
                 'barman_backup_wal_size', "WAL size of available backups",
                 labels=['server', 'number']),
-            barman_backup_total=core.GaugeMetricFamily(
-                "barman_backup_total", "Total number of backups",
+            barman_backups_total=core.GaugeMetricFamily(
+                "barman_backups_total", "Total number of backups",
                 labels=["server"]),
-            barman_backup_failed=core.GaugeMetricFamily(
-                "barman_backup_failed", "Number of failed backups",
+            barman_backups_failed=core.GaugeMetricFamily(
+                "barman_backups_failed", "Number of failed backups",
                 labels=["server"]),
             barman_last_backup=core.GaugeMetricFamily(
                 "barman_last_backup", "Last successful backup timestamp",
@@ -118,8 +118,8 @@ class BarmanCollector:
             barman_server = BarmanServer(self.barman, server_name)
             self.collect_first_backup(barman_server)
             self.collect_last_backup(barman_server)
-            self.collect_backup_total(barman_server)
-            self.collect_backup_failed(barman_server)
+            self.collect_backups_total(barman_server)
+            self.collect_backups_failed(barman_server)
             self.collect_last_backup_copy_time(barman_server)
             self.collect_barman_backup_size(barman_server)
             self.collect_barman_backup_wal_size(barman_server)
@@ -149,12 +149,12 @@ class BarmanCollector:
             self.collectors['barman_last_backup'].add_metric(
                 [barman_server.name], last_backup.strftime("%s"))
 
-    def collect_backup_total(self, barman_server):
-        self.collectors['barman_backup_total'].add_metric([barman_server.name], len(
+    def collect_backups_total(self, barman_server):
+        self.collectors['barman_backups_total'].add_metric([barman_server.name], len(
             barman_server.backups_done) + len(barman_server.backups_failed))
 
-    def collect_backup_failed(self, barman_server):
-        self.collectors['barman_backup_failed'].add_metric(
+    def collect_backups_failed(self, barman_server):
+        self.collectors['barman_backups_failed'].add_metric(
             [barman_server.name], len(barman_server.backups_failed))
 
     def collect_last_backup_copy_time(self, barman_server):

@@ -119,8 +119,8 @@ scrape_configs:
 
 - `number=1` label indicates the newest backup
 - `barman_bacukps_size` and `barman_backup_wal_size` show successful backups only. Failed backups will not be listed here
-- `barman_backup_total` includes failed backups
-- `barman_backup_failed`exposes the number of failed backups
+- `barman_backups_total` includes failed backups
+- `barman_backups_failed`exposes the number of failed backups
 - `barman_last_backup_copy_time` shows how long it takes to make a backup
 - `barman_up` shows all checks from `barman check SERVER_NAME` command. Output `OK` is `1.0`, `FAILED` is `0.0`.
 - `barman_metrics_update` shows a timestamp when barman metrics has been last updated
@@ -156,13 +156,13 @@ barman_backup_wal_size{number="6",server="postgres-01"} 2.73267294208e+011
 barman_backup_wal_size{number="7",server="postgres-01"} 3.65501716889e+011
 barman_backup_wal_size{number="8",server="postgres-01"} 2.34075717632e+011
 
-# HELP barman_backup_total Total number of backups
-# TYPE barman_backup_total gauge
-barman_backup_total{server="postgres-01"} 9.0
+# HELP barman_backups_total Total number of backups
+# TYPE barman_backups_total gauge
+barman_backups_total{server="postgres-01"} 9.0
 
-# HELP barman_backup_failed Number of failed backups
-# TYPE barman_backup_failed gauge
-barman_backup_failed{server="postgres-01"} 1.0
+# HELP barman_backups_failed Number of failed backups
+# TYPE barman_backups_failed gauge
+barman_backups_failed{server="postgres-01"} 1.0
 
 # HELP barman_last_backup Last successful backup timestamp
 # TYPE barman_last_backup gauge
