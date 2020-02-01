@@ -2,7 +2,7 @@
 
 The barman exporter runs `barman` shell command with _experimental_ JSON output I added to Barman 2.9. JSON output may change in the future and break some of the functionalities in the exporter.
 
-By default `barman-exporter` runs as a service on 127.0.0.1:9780 with metrics refresh every hours.
+By default `barman-exporter` runs as a service on 127.0.0.1:9780 with metrics refreshed every hour.
 
 You can also run barman-exporter from cron with `-f` to output results to a textfile:
 
@@ -52,7 +52,7 @@ For example:
 - `$ barman-exporter postgres-01`
 - `$ barman-exporter postgres-01 postgres-02`
 - `$ barman-exporter all`
-- `\$ barman-exporter -l 10.10.10.10:9780 -c 900
+- `$ barman-exporter -l 10.10.10.10:9780 -c 900`
 - `$ barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom -u prometheus -g prometheus -m 0640 all`
 
 ## Requirements
