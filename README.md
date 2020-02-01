@@ -52,7 +52,7 @@ For example:
 - `$ barman-exporter postgres-01`
 - `$ barman-exporter postgres-01 postgres-02`
 - `$ barman-exporter all`
-- `$ barman-exporter -l 10.10.10.10:9780 -c 900
+- `\$ barman-exporter -l 10.10.10.10:9780 -c 900
 - `$ barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom -u prometheus -g prometheus -m 0640 all`
 
 ## Requirements
@@ -101,7 +101,7 @@ In this mode barman exporter does not require any Prometheus configuration becau
 
 ## Prometheus configuration
 
-Please note that `barman-exporter` is listing all backups and it is rather quite I/O heavy operation. It can take a while to complete. 
+Please note that `barman-exporter` is listing all backups and it is rather quite I/O heavy operation. It can take a while to complete.
 
 **Definitely do not run barman exporter every minute**.
 
@@ -118,9 +118,9 @@ scrape_configs:
 ## Metrics
 
 - `number=1` label indicates the newest backup
-- `barman_bacukps_size` and `barman_backups_wal_size` show successful backups only. Failed backups will not be listed here
-- `barman_backups_total` includes failed backups
-- `barman_backups_failed`exposes the number of failed backups
+- `barman_bacukps_size` and `barman_backup_wal_size` show successful backups only. Failed backups will not be listed here
+- `barman_backup_total` includes failed backups
+- `barman_backup_failed`exposes the number of failed backups
 - `barman_last_backup_copy_time` shows how long it takes to make a backup
 - `barman_up` shows all checks from `barman check SERVER_NAME` command. Output `OK` is `1.0`, `FAILED` is `0.0`.
 - `barman_metrics_update` shows a timestamp when barman metrics has been last updated
@@ -134,35 +134,35 @@ time() - barman_last_backup{instance="$instance", server="$server"}
 ### Raw metrics
 
 ```
-# HELP barman_backups_size Size of available backups
-# TYPE barman_backups_size gauge
-barman_backups_size{number="1",server="postgres-01"} 1.429365116108e+012
-barman_backups_size{number="2",server="postgres-01"} 1.429365116108e+012
-barman_backups_size{number="3",server="postgres-01"} 1.429365116108e+012
-barman_backups_size{number="4",server="postgres-01"} 1.429365116108e+012
-barman_backups_size{number="5",server="postgres-01"} 1.429365116108e+012
-barman_backups_size{number="6",server="postgres-01"} 1.429365116108e+012
-barman_backups_size{number="7",server="postgres-01"} 1.429365116108e+012
-barman_backups_size{number="8",server="postgres-01"} 1.429365116108e+012
+# HELP barman_backup_size Size of available backups
+# TYPE barman_backup_size gauge
+barman_backup_size{number="1",server="postgres-01"} 1.429365116108e+012
+barman_backup_size{number="2",server="postgres-01"} 1.429365116108e+012
+barman_backup_size{number="3",server="postgres-01"} 1.429365116108e+012
+barman_backup_size{number="4",server="postgres-01"} 1.429365116108e+012
+barman_backup_size{number="5",server="postgres-01"} 1.429365116108e+012
+barman_backup_size{number="6",server="postgres-01"} 1.429365116108e+012
+barman_backup_size{number="7",server="postgres-01"} 1.429365116108e+012
+barman_backup_size{number="8",server="postgres-01"} 1.429365116108e+012
 
-# HELP barman_backups_wal_size WAL size of available backups
-# TYPE barman_backups_wal_size gauge
-barman_backups_wal_size{number="1",server="postgres-01"} 1.94347270144e+011
-barman_backups_wal_size{number="2",server="postgres-01"} 3.06553290752e+011
-barman_backups_wal_size{number="3",server="postgres-01"} 3.05479548928e+011
-barman_backups_wal_size{number="4",server="postgres-01"} 4.79318350233e+011
-barman_backups_wal_size{number="5",server="postgres-01"} 2.87333312102e+011
-barman_backups_wal_size{number="6",server="postgres-01"} 2.73267294208e+011
-barman_backups_wal_size{number="7",server="postgres-01"} 3.65501716889e+011
-barman_backups_wal_size{number="8",server="postgres-01"} 2.34075717632e+011
+# HELP barman_backup_wal_size WAL size of available backups
+# TYPE barman_backup_wal_size gauge
+barman_backup_wal_size{number="1",server="postgres-01"} 1.94347270144e+011
+barman_backup_wal_size{number="2",server="postgres-01"} 3.06553290752e+011
+barman_backup_wal_size{number="3",server="postgres-01"} 3.05479548928e+011
+barman_backup_wal_size{number="4",server="postgres-01"} 4.79318350233e+011
+barman_backup_wal_size{number="5",server="postgres-01"} 2.87333312102e+011
+barman_backup_wal_size{number="6",server="postgres-01"} 2.73267294208e+011
+barman_backup_wal_size{number="7",server="postgres-01"} 3.65501716889e+011
+barman_backup_wal_size{number="8",server="postgres-01"} 2.34075717632e+011
 
-# HELP barman_backups_total Total number of backups
-# TYPE barman_backups_total gauge
-barman_backups_total{server="postgres-01"} 9.0
+# HELP barman_backup_total Total number of backups
+# TYPE barman_backup_total gauge
+barman_backup_total{server="postgres-01"} 9.0
 
-# HELP barman_backups_failed Number of failed backups
-# TYPE barman_backups_failed gauge
-barman_backups_failed{server="postgres-01"} 1.0
+# HELP barman_backup_failed Number of failed backups
+# TYPE barman_backup_failed gauge
+barman_backup_failed{server="postgres-01"} 1.0
 
 # HELP barman_last_backup Last successful backup timestamp
 # TYPE barman_last_backup gauge
