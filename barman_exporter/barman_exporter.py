@@ -33,7 +33,7 @@ class Barman:
         return output
 
     def version(self):
-        version = barman_cli('-v').split()
+        version = barman_cli('-v', _err_to_out=True).split()
         return version[0]
 
     def servers(self):
