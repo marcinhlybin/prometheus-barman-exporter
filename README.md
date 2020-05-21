@@ -202,3 +202,12 @@ barman_up{check="wal_level",server="postgres-01"} 1.0
 # TYPE barman_metrics_update gauge
 barman_metrics_update{server="autouncle"} 1.580485601e+09
 ```
+
+## Development
+
+Upload to PyPi:
+
+```
+source venv/bin/activate
+python3 setup.py sdist upload
+```
