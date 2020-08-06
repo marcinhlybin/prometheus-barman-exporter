@@ -136,14 +136,14 @@ class BarmanCollector:
             return self.servers
 
     def collect_first_backup(self, barman_server):
-        if barman_server.status['first_backup']:
+        if barman_server.status['first_backup'] and barman_server.status['first_backup'] != 'None':
             first_backup = datetime.strptime(
                 barman_server.status['first_backup'], "%Y%m%dT%H%M%S")
             self.collectors['barman_first_backup'].add_metric(
                 [barman_server.name], first_backup.strftime("%s"))
 
     def collect_last_backup(self, barman_server):
-        if barman_server.status['last_backup']:
+        if barman_server.status['last_backup'] and barman_server.status['last_backup'] != 'None':
             last_backup = datetime.strptime(
                 barman_server.status['last_backup'], "%Y%m%dT%H%M%S")
             self.collectors['barman_last_backup'].add_metric(
