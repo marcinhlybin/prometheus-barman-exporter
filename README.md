@@ -1,16 +1,16 @@
 # Barman exporter for Prometheus
 
-The barman exporter runs `barman` shell command with _experimental_ JSON output I added to Barman 2.9. JSON output may change in the future and break some of the functionalities in the exporter.
+The barman exporter runs `barman` shell command with _experimental_ JSON output.
 
-By default `barman-exporter` runs as a service on 127.0.0.1:9780 with metrics refreshed every hour.
+By default `barman-exporter` runs as a service and binds to 127.0.0.1:9780. Metrics are cached and refreshed every hour.
 
-You can also run barman-exporter from cron with `-f` to output results to a textfile:
+You can run `barman-exporter` from cron using `-f` argument to output results to a textfile:
 
 ```
 barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom
 ```
 
-Remember to tell `node_exporter` to use this path with `--collector.textfile.directory` option.
+In such case the `node_exporter` must point to this path with `--collector.textfile.directory` option.
 
 ## Grafana dashboard
 
@@ -21,15 +21,13 @@ You can find basic grafana dashboard in `grafana-dashboard.json`. It is open for
 ## Usage
 
 ```
-usage: barman-exporter [-h] [-u USER] [-g GROUP] [-m MODE] [-c SECONDS]
-                       [-f TEXTFILE_PATH | -l HOST:PORT | -d]
+usage: barman-exporter [-h] [-u USER] [-g GROUP] [-m MODE] [-c SECONDS] [-v] [-f TEXTFILE_PATH | -l HOST:PORT | -d]
                        [servers [servers ...]]
 
 Barman exporter
 
 positional arguments:
-  servers               Space separated list of servers to check (default:
-                        ['all'])
+  servers               Space separated list of servers to check (default: ['all'])
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -38,8 +36,8 @@ optional arguments:
                         Textfile group (default: prometheus)
   -m MODE, --mode MODE  Textfile mode (default: 0644)
   -c SECONDS, --cache-time SECONDS
-                        Number of seconds to cache barman output for (default:
-                        3600)
+                        Number of seconds to cache barman output for (default: 3600)
+  -v, --version         Show barman exporter version (default: False)
   -f TEXTFILE_PATH, --file TEXTFILE_PATH
                         Save output to textfile (default: None)
   -l HOST:PORT, --listen-address HOST:PORT
@@ -47,7 +45,7 @@ optional arguments:
   -d, --debug           Print output to stdout (default: False)
 ```
 
-For example:
+Examples:
 
 - `$ barman-exporter postgres-01`
 - `$ barman-exporter postgres-01 postgres-02`
@@ -57,12 +55,12 @@ For example:
 
 ## Requirements
 
-You need Python3 along with following modules:
+Python3 and following modules are required to run it:
 
 - prometheus_client
 - sh
 
-All dependencies will be installed with pip command (see Installation).
+All dependencies will be installed automatically with pip command (see Installation).
 
 ## Installation
 
@@ -91,7 +89,7 @@ WantedBy=multi-user.target
 
 ### Cron job to run barman-exporter with textfile output
 
-If you don't want to use barman exporter as a web service you can run it with `-f` argument as a cron job. To run it every hour:
+If you don't want to use barman exporter as a service you can run it with `-f` argument from the cron job. To run it every hour:
 
 ```
 0 * * * * root barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom
@@ -101,11 +99,7 @@ In this mode barman exporter does not require any Prometheus configuration becau
 
 ## Prometheus configuration
 
-Please note that `barman-exporter` is listing all backups and it is rather quite I/O heavy operation. It can take a while to complete.
-
-**Definitely do not run barman exporter every minute**.
-
-Also do not set up very low cache time.
+Please note that `barman-exporter` is listing all backups which is quite heavy operation to perform and it takes some time. Barman exporter caches its results because execution every 5 seconds would be impossible.
 
 ```
 scrape_configs:
@@ -118,14 +112,14 @@ scrape_configs:
 ## Metrics
 
 - `number=1` label indicates the newest backup
-- `barman_bacukps_size` and `barman_backup_wal_size` show successful backups only. Failed backups will not be listed here
+- `barman_bacukps_size` and `barman_backup_wal_size` show successful backups only. Failed backups will not be listed here.
 - `barman_backups_total` includes failed backups
-- `barman_backups_failed`exposes the number of failed backups
+- `barman_backups_failed`exposes the number of failed backups.
 - `barman_last_backup_copy_time` shows how long it takes to make a backup
 - `barman_up` shows all checks from `barman check SERVER_NAME` command. Output `OK` is `1.0`, `FAILED` is `0.0`.
 - `barman_metrics_update` shows a timestamp when barman metrics has been last updated
 
-With `barman_last_backup` and `barman_first_backup` you can easily calculate when the latest backup completed:
+With `barman_last_backup` and `barman_first_backup` you can easily calculate when the latest backup was completed:
 
 ```
 time() - barman_last_backup{instance="$instance", server="$server"}
@@ -209,5 +203,7 @@ Upload to PyPi:
 
 ```
 source venv/bin/activate
-python3 setup.py sdist upload
+rm -f dist/*
+python3 setup.py sdist
+twine upload dist/*
 ```
