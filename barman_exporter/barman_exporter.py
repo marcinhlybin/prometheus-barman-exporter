@@ -9,6 +9,7 @@ import prometheus_client
 from prometheus_client import core
 from datetime import datetime
 
+BARMAN_EXPORTER_VERSION = '1.0.10'
 sys.tracebacklimit = 0
 
 try:
@@ -213,7 +214,9 @@ class BarmanCollectorCache:
 def main():
     args = parse_args()
 
-    if args.debug:
+    if args.version:
+        show_version()
+    elif args.debug:
         sys.tracebacklimit = 1
         print_metrics_to_stdout(args)
     elif args.file:
@@ -238,6 +241,8 @@ def parse_args():
                         default='0644', help="Textfile mode")
     parser.add_argument('-c', '--cache-time', metavar='SECONDS', type=int,
                         default=3600, help='Number of seconds to cache barman output for')
+    parser.add_argument('-v', '--version', action='store_true', 
+                        help='Show barman exporter version')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-f', '--file',
@@ -252,6 +257,11 @@ def parse_args():
                        help="Print output to stdout")
 
     return parser.parse_args()
+
+
+def show_version():
+    print(BARMAN_EXPORTER_VERSION)
+    sys.exit(0)
 
 
 def write_metrics_to_file(args):
