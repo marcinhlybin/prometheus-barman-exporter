@@ -1,7 +1,7 @@
 # Barman exporter for Prometheus
 
-The barman exporter runs `barman` shell command with _experimental_ JSON output.
-
+The barman exporter runs `barman` shell command with _experimental_ JSON output. I am the author of JSON output in Barman so it should work fine until somebody else changes output format which may happen in the future.
+ 
 By default `barman-exporter` runs as a service and binds to 127.0.0.1:9780. Metrics are cached and refreshed every hour.
 
 You can run `barman-exporter` from cron using `-f` argument to output results to a textfile:
