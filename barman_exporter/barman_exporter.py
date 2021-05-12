@@ -194,6 +194,7 @@ class BarmanCollectorCache:
         self.servers = servers
         self.cache_time = cache_time
         self._collect = []
+        self.barman_collector = None # Set this before start_collect_thread().
         self.start_collect_thread()
 
     def start_collect_thread(self):
@@ -203,9 +204,16 @@ class BarmanCollectorCache:
 
     def collect_loop(self):
         while True:
-            barman_collector = BarmanCollector(self.barman, self.servers)
-            self._collect = list(barman_collector.collect())
-            time.sleep(self.cache_time)
+            try:
+                if self.barman_collector != None:
+                    del self.barman_collector
+                    self.barman_collector = None
+                self.barman_collector = BarmanCollector(self.barman, self.servers)
+                self._collect = list(self.barman_collector.collect())
+                time.sleep(self.cache_time)
+            except Exception as e:
+                print("%s: Line %s: %s\n" % (type(e).__name__, e.__traceback__.tb_lineno, str(e)))
+
 
     def collect(self):
         return self._collect
