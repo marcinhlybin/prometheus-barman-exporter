@@ -112,7 +112,7 @@ scrape_configs:
 ## Metrics
 
 - `number=1` label indicates the newest backup
-- `barman_bacukps_size` and `barman_backup_wal_size` show successful backups only. Failed backups will not be listed here.
+- `barman_backups_size` and `barman_backup_wal_size` show successful backups only. Failed backups will not be listed here.
 - `barman_backups_total` includes failed backups
 - `barman_backups_failed`exposes the number of failed backups.
 - `barman_last_backup_copy_time` shows how long it takes to make a backup
