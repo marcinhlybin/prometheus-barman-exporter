@@ -7,7 +7,7 @@ By default `barman-exporter` runs as a service and binds to 127.0.0.1:9780. Metr
 You can run `barman-exporter` from cron using `-f` argument to output results to a textfile:
 
 ```
-barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom
+/usr/local/bin/barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom
 ```
 
 In such case the `node_exporter` must point to this path with `--collector.textfile.directory` option.
@@ -47,11 +47,11 @@ optional arguments:
 
 Examples:
 
-- `$ barman-exporter postgres-01`
-- `$ barman-exporter postgres-01 postgres-02`
-- `$ barman-exporter all`
-- `$ barman-exporter -l 10.10.10.10:9780 -c 900`
-- `$ barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom -u prometheus -g prometheus -m 0640 all`
+- `$ /usr/local/bin/barman-exporter postgres-01`
+- `$ /usr/local/bin/barman-exporter postgres-01 postgres-02`
+- `$ /usr/local/bin/barman-exporter all`
+- `$ /usr/local/bin/barman-exporter -l 10.10.10.10:9780 -c 900`
+- `$ /usr/local/bin/barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom -u prometheus -g prometheus -m 0640 all`
 
 ## Requirements
 
@@ -92,7 +92,7 @@ WantedBy=multi-user.target
 If you don't want to use barman exporter as a service you can run it with `-f` argument from the cron job. To run it every hour:
 
 ```
-0 * * * * root barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom
+0 * * * * /usr/local/bin/barman-exporter -f /var/lib/prometheus/node_exporter/barman.prom
 ```
 
 In this mode barman exporter does not require any Prometheus configuration because it uses **node-exporter** to parse the metrics from a textfile. Remember to use `--collector.textfile.directory` in `node-exporter` to define a directory with textfiles.
