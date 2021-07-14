@@ -34,6 +34,8 @@ def barman_cli(*args, **kwargs):
     return res.stdout
   except subprocess.CalledProcessError as e:
     logging.error(f'{e.cmd}: {e.returncode}. {e.stdout}. {e.stderr}')
+    # It's important when barman check returns FAILURE. We should also send out stdout here too.
+    return res.stdout
   except Exception as e:
     logging.error(e)
 
