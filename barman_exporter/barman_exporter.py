@@ -67,7 +67,8 @@ class Barman:
 
     def servers(self):
         servers = self.cli('list-server')
-        return list(servers.keys())
+        # Filter out e.g. _WARNING
+        return list(filter(lambda k: not k.startswith('_'), servers.keys()))
 
     def server_status(self, server_name):
         status = self.cli('status', server_name)
