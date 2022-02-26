@@ -5,22 +5,47 @@ import time
 import json
 import shutil
 import threading
+import logging
 import prometheus_client
 from prometheus_client import core
 from datetime import datetime
 
+import subprocess
+
 BARMAN_EXPORTER_VERSION = '1.0.10'
 sys.tracebacklimit = 0
 
-try:
-    from sh import barman as barman_cli
-except ImportError as e:
-    raise ImportError('ERROR: Barman binary not found!') from e
+log_file = '/var/log/barman_exporter.log'
+format = '%(asctime)s %(funcName)s:%(lineno)d %(process)d:%(thread)d %(message)s'
+logging.basicConfig(filename=log_file, filemode='w', level=logging.INFO, format=format)
+# logging.basicConfig(level=logging.INFO, format=format)
 
+def barman_cli(*args, **kwargs):
+  try:
+    newKwargs = dict()
+    for k,v in kwargs.items():
+      # Remove all sh module options
+      if (k[0]!='_'):
+        newKwargs[k]=kwargs[k]
+      else:
+        print(f'remove {k}')
+    res = subprocess.run(['barman', *args], capture_output=True, check=False, text=True, timeout=10, **newKwargs)
+    logging.info(f'{res}')
+    return res.stdout
+  except subprocess.CalledProcessError as e:
+    logging.error(f'{e.cmd}: {e.returncode}. {e.stdout}. {e.stderr}')
+    # It's important when barman check returns FAILURE. We should also send out stdout here too.
+    return res.stdout
+  except Exception as e:
+    logging.error(e)
 
 class Barman:
-    def __init__(self):
+
+    cache_time = 120
+
+    def __init__(self, cache_time):
         self.check_barman_version()
+        Barman.cache_time = cache_time
 
     def check_barman_version(self):
         barman_version = tuple(int(v) for v in self.version().split('.'))
@@ -29,7 +54,10 @@ class Barman:
 
     @staticmethod
     def cli(*args, **kwargs):
+        logging.info('barman_cli: ' + ','.join(map(str,args)) + ", ".join(f"{key}={value}" for key, value in kwargs.items()))
+        logging.info(f'cache_time: {Barman.cache_time}')
         output = barman_cli('-f', 'json', *args, **kwargs)
+        # logging.info(f'output: {output}')
         output = json.loads(str(output))
         return output
 
@@ -39,7 +67,8 @@ class Barman:
 
     def servers(self):
         servers = self.cli('list-server')
-        return list(servers.keys())
+        # Filter out e.g. _WARNING
+        return list(filter(lambda k: not k.startswith('_'), servers.keys()))
 
     def server_status(self, server_name):
         status = self.cli('status', server_name)
@@ -64,7 +93,7 @@ class Barman:
         backup = self.cli('show-backup', server_name, backup_id)
         return backup[server_name]
 
-
+# During construction of this class instance, barman_cli is called.
 class BarmanServer:
 
     def __init__(self, barman, server_name):
@@ -192,26 +221,26 @@ class BarmanCollectorCache:
     def __init__(self, barman, servers, cache_time):
         self.barman = barman
         self.servers = servers
-        self.cache_time = cache_time
         self._collect = []
-        self.start_collect_thread()
-
-    def start_collect_thread(self):
-        t = threading.Thread(target=self.collect_loop)
-        t.daemon = True
-        t.start()
 
     def collect_loop(self):
-        while True:
+        logging.info("collect_loop----------")
+        try:
             barman_collector = BarmanCollector(self.barman, self.servers)
             self._collect = list(barman_collector.collect())
-            time.sleep(self.cache_time)
+            logging.info("collected data: ", self._collect)
+        except Exception as e:
+            logging.error("%s: Line %s: %s\n" % (type(e).__name__, e.__traceback__.tb_lineno, str(e)))
+            logging.error(e.__traceback__)
+        except:
+            logging.error("Unexpected error:", sys.exc_info())
 
     def collect(self):
         return self._collect
 
 
 def main():
+  try:
     args = parse_args()
 
     if args.version:
@@ -223,7 +252,10 @@ def main():
         write_metrics_to_file(args)
     else:
         start_exporter_service(args)
-
+  # except Exception as e:
+  #     logging.error("%s: Line %s: %s\n" % (type(e).__name__, e.__traceback__.tb_lineno, str(e)))
+  except:
+      logging.error("Unexpected error:", sys.exc_info())
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -258,6 +290,7 @@ def parse_args():
 
     return parser.parse_args()
 
+# python3 /barman_exporter.py -l 0.0.0.0:9780 -c 10 -d
 
 def show_version():
     print(BARMAN_EXPORTER_VERSION)
@@ -265,7 +298,7 @@ def show_version():
 
 
 def write_metrics_to_file(args):
-    registry = BarmanCollector(Barman(), args.servers)
+    registry = BarmanCollector(Barman(args.cache_time), args.servers)
     prometheus_client.write_to_textfile(args.file, registry)
     shutil.chown(args.file, user=args.user, group=args.group)
     os.chmod(args.file, mode=int(args.mode, 8))
@@ -278,20 +311,22 @@ def start_exporter_service(args):
         raise ValueError("Incorrect '--listen-address' value: '{}'.".format(
             args.listen_address), "Use HOST:PORT.") from e
 
-    registry = BarmanCollectorCache(Barman(), args.servers, args.cache_time)
+    registry = BarmanCollectorCache(Barman(args.cache_time), args.servers, args.cache_time)
     core.REGISTRY.register(registry)
 
     print("Listening on " + args.listen_address)
     prometheus_client.start_http_server(int(port), addr)
 
     while True:
-        time.sleep(1)
+        registry.collect_loop()
+        time.sleep(args.cache_time)
 
 
 def print_metrics_to_stdout(args):
-    registry = BarmanCollector(Barman(), args.servers)
+    registry = BarmanCollector(Barman(args.cache_time), args.servers)
     print(prometheus_client.generate_latest(registry).decode())
 
 
 if __name__ == "__main__":
     main()
+
